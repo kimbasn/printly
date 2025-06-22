@@ -8,10 +8,11 @@ import (
 )
 
 type Config struct {
-	AppEnv   string
-	DBDriver string // "sqlite", "postgres", etc.
-	DBSource string // DSN or file path
-	Port     string
+	AppEnv   			string
+	DBDriver 			string // "sqlite", "postgres", etc.
+	DBSource 			string // DSN or file path
+	Host				string
+	Port     			string
 }
 
 func getEnv(key, fallback string) string {
@@ -31,6 +32,7 @@ func Load() *Config {
 		AppEnv:   getEnv("APP_ENV", "development"),
 		DBDriver: getEnv("DB_DRIVER", "sqlite"),
 		DBSource: getEnv("DB_SOURCE", "printly.db"),
+		Host: getEnv("SERVER_ADDRESS", "localhost"),
 		Port:     getEnv("PORT", "8080"),
 	}
 
