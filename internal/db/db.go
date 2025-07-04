@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/kimbasn/printly/internal/config"
@@ -9,9 +10,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-
-func Init(cfg *config.Config) {
+func Init(cfg *config.Config) (*gorm.DB, error) {
 	var dialector gorm.Dialector
 
 	switch cfg.DBDriver {
@@ -20,23 +19,23 @@ func Init(cfg *config.Config) {
 	// case "postgres":
 	//	dialector = postgres.Open(cfg.DBSource)
 	default:
-		log.Fatalf("Unsupported DB driver: %s", cfg.DBDriver)
+		return nil, fmt.Errorf("Unsupported DB driver: %s", cfg.DBDriver)
 	}
 
-	var err error
-	DB, err = gorm.Open(dialector, &gorm.Config{})
+	db, err := gorm.Open(dialector, &gorm.Config{})
 	if err != nil {
-		log.Fatalf("❌ Failed to connect to database: %v", err)
+		return nil, fmt.Errorf("Failed to connect to database: %w", err)
 	}
 
-	sqlDB, err := DB.DB()
+	sqlDB, err := db.DB()
 	if err != nil {
-		log.Fatalf("❌ Failed to get DB instance: %v", err)
+		return nil, fmt.Errorf("Failed to get DB instance: %w", err)
 	}
 
 	if err := sqlDB.Ping(); err != nil {
-		log.Fatalf("❌ Failed to ping DB: %v", err)
+		return nil, fmt.Errorf("Failed to ping DB: %w", err)
 	}
 
 	log.Println("✅ Connected to database:", cfg.DBDriver)
+	return db, nil
 }
