@@ -14,6 +14,15 @@ const (
 	RoleAdmin   Role = "admin"
 )
 
+func (r Role) IsValid() bool {
+	switch r {
+	case RoleUser, RoleAdmin, RoleManager:
+		return true
+	default:
+		return false
+	}
+}
+
 type User struct {
 	UID         string    `gorm:"primaryKey" json:"uid"`         // Firebase UID (unique)
 	Role        Role      `json:"role"`                          // "user", "manager", "admin"

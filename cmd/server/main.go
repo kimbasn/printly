@@ -9,11 +9,12 @@ import (
 
 	"github.com/kimbasn/printly/internal/config"
 	"github.com/kimbasn/printly/internal/db"
+	"github.com/kimbasn/printly/internal/middlewares"
 	"github.com/kimbasn/printly/internal/routes"
 
+	"github.com/go-playground/validator/v10"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/go-playground/validator/v10"
 )
 
 // @title           Printly API
@@ -42,22 +43,32 @@ func main() {
 
 	log.Printf("🚀 Starting Printly in %s mode on port %s...\n", cfg.AppEnv, cfg.Port)
 
-	router := gin.Default()
+	// server := gin.Default()
+	server := gin.New()
+
+	server.Use(gin.Recovery())
+
+	server.Use(middlewares.Logger())
 
 	// Allow CORS for frontend apps
-	router.Use(cors.Default())
+	server.Use(cors.Default())
+
+	server.Use(middlewares.BasicAuth())
 
 	// Swagger route
-	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 
 	// API V1 grouping
-	api := router.Group("api/v1")
-	routes.RegisterUserRoutes(api, dbConn, validator.New())
+	api := server.Group("api/v1")
+	validate := validator.New()
+	routes.RegisterUserRoutes(api, dbConn, validate)
+	routes.RegisterPrintCenterRoutes(api, dbConn, validate)
+	routes.RegisterOrderRoutes(api, dbConn, validate)
 
 	// Start server
 	serverAddress := cfg.Host + ":" + cfg.Port
-	if err := router.Run(serverAddress); err != nil {
+	if err := server.Run(serverAddress); err != nil {
 		log.Fatalf("❌ Server failed: %v", err)
 	}
 

@@ -37,30 +37,34 @@ const (
 	A3 PaperSize = "A3"
 )
 
-type PrintOptions struct {
-	Copies    int       `json:"copies"`
-	Pages     string    `json:"pages"`      // e.g., "1-3,5"
-	Color     string    `json:"color"`      // "color" | "black_white"
-	PaperSize PaperSize `json:"paper_size" gorm:"type:varchar(8)"` // "A4", "A3", etc.
-}
+type ColorMode string
+
+const (
+	Color			ColorMode = "COLOR"
+	BlackAndWhite	ColorMode = "BLACK_AND_WHITE"
+)
 
 type Order struct {
-	gorm.Model
+	// gorm.Model is replaced to be explicit for swagger
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Code         	string       	`gorm:"column:pickup_code;uniqueIndex;type:varchar(32)" json:"code"`
+	Code         	string       	`gorm:"uniqueIndex;type:varchar(32)" json:"code"`
 	UserUID      	string      	`gorm:"index" json:"user_uid"`
-	PrintCenterID   string  		`gorm:"index" json:"center_id"`
-	Status       	OrderStatus 	`gorm:"index;type:varchar(32)" json:"status"`
+	PrintCenterID   uint      		`gorm:"index" json:"print_center_id"`
 	PrintMode    	PrintMode   	`gorm:"type:varchar(32)" json:"print_mode"`
-	PickupTime   	*time.Time  	`json:"pickup_time,omitempty"`
-	Paid         	bool        	`json:"paid"`
-	Printed      	bool        	`json:"printed"`
-	PrintedAt    	*time.Time  	`json:"printed_at,omitempty"`
-	CancelledAt  	*time.Time  	`json:"cancelled_at,omitempty"`
-	PrintOptions 	PrintOptions	`gorm:"embedded;embeddedPrefix:print_" json:"print_options"`
+	Status       	OrderStatus 	`gorm:"index;type:varchar(32)" json:"status"`
 
-	// Optional relationships
+	
+	PickupTime   	*time.Time  	`json:"pickup_time,omitempty"`
+	PaidAt         	*time.Time      `json:"paid_at,omitempty"`
+	CancelledAt  	*time.Time  	`json:"cancelled_at,omitempty"`
+	
+	Documents		[]Document		`gorm:"foreignKey:OrderID"`
+
+	// Relationships
 	User   		User        `gorm:"foreignKey:UserUID;references:UID" json:"-"`
 	Center 		PrintCenter `gorm:"foreignKey:PrintCenterID" json:"-"`
 }
-

@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/kimbasn/printly/internal/entity"
@@ -41,17 +40,14 @@ func (r *userRepository) Save(u *entity.User) error {
 }
 
 // FindByUID retrieves a user from the database by their unique identifier (UID).
-// If no user is found, it returns (nil, nil).
-// It returns an error for any other database-related issues.
+// It returns gorm.ErrRecordNotFound if the user is not found, or another error for other database-related issues.
 func (r *userRepository) FindByUID(uid string) (*entity.User, error) {
 	var user entity.User
-	result := r.db.First(&user, "uid = ?", uid)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
-	if result.Error != nil {
-		return nil, fmt.Errorf("failed to fetch user UID %s: %w", uid, result.Error)
+	if err := r.db.First(&user, "uid = ?", uid).Error; err != nil {
+		// This will return gorm.ErrRecordNotFound if the user is not found,
+		// or another database error if one occurred.
+		return nil, err
 	}
 	return &user, nil
 }
@@ -69,7 +65,7 @@ func (r *userRepository) Update(uid string, update map[string]interface{}) error
 // Delete removes a user from the database based on their UID.
 func (r *userRepository) Delete(uid string) error {
 	result := r.db.Where("uid = ?", uid).Delete(&entity.User{})
-	
+
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete user UID %s: %w", uid, result.Error)
 	}

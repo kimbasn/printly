@@ -2,11 +2,9 @@ package controller
 
 import (
 	"net/http"
-	"errors"
 
 	"github.com/gin-gonic/gin"
 	"github.com/kimbasn/printly/internal/entity"
-	ierrors "github.com/kimbasn/printly/internal/errors"
 	"github.com/kimbasn/printly/internal/service"
 	"github.com/kimbasn/printly/internal/dto"
 	"github.com/kimbasn/printly/internal/validators"
@@ -68,7 +66,7 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 	
 	created, err := c.service.Register(user)
 	if err != nil {
-		c.handleServiceError(ctx, err, "failed to register user")
+		HandleServiceError(ctx, err, "failed to register user")
 		return
 	}
 	ctx.JSON(http.StatusCreated, created)
@@ -88,7 +86,7 @@ func (c *userController) GetUserByUID(ctx *gin.Context) {
 	uid := ctx.Param("uid")
 	user, err := c.service.GetByUID(uid)
 	if err != nil {
-		c.handleServiceError(ctx, err, "failed to fetch user")
+		HandleServiceError(ctx, err, "failed to fetch user")
 		return
 	}
 	ctx.JSON(http.StatusOK, user)
@@ -125,7 +123,7 @@ func (c *userController) UpdateUserProfile(ctx *gin.Context) {
 	}
 	
 	if err := c.service.UpdateProfile(user); err != nil {
-		c.handleServiceError(ctx, err, "failed to update profile")
+		HandleServiceError(ctx, err, "failed to update profile")
 		return
 	}
 	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "profile updated"})
@@ -142,7 +140,7 @@ func (c *userController) UpdateUserProfile(ctx *gin.Context) {
 func (c *userController) GetAllUsers(ctx *gin.Context) {
 	users, err := c.service.GetAll()
 	if err != nil {
-		c.handleServiceError(ctx, err, "failed to fetch users")
+		HandleServiceError(ctx, err, "failed to fetch users")
 		return
 	}
 	ctx.JSON(http.StatusOK, users)
@@ -168,22 +166,11 @@ func (c *userController) DeleteUserByUID(ctx *gin.Context) {
 
 	err := c.service.Delete(uid)
 	if err != nil {
-		c.handleServiceError(ctx, err, "failed to delete user")
+		HandleServiceError(ctx, err, "failed to delete user")
 		return
 	}
 
 	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "user deleted successfully"})
 }
 
-// handleServiceError centralizes error handling for the user controller.
-// It maps service-layer errors to appropriate HTTP status codes and responses.
-func (c *userController) handleServiceError(ctx *gin.Context, err error, defaultMessage string) {
-	switch {
-	case errors.Is(err, ierrors.ErrUserNotFound):
-		ctx.JSON(http.StatusNotFound, dto.ErrorResponse{Error: err.Error()})
-	case errors.Is(err, ierrors.ErrUserAlreadyExists):
-		ctx.JSON(http.StatusConflict, dto.ErrorResponse{Error: err.Error()})
-	default:
-		ctx.JSON(http.StatusInternalServerError, dto.ErrorResponse{Error: defaultMessage})
-	}
-}
+

@@ -1,17 +1,28 @@
 package entity
 
 import (
+	"time"
+
 	"gorm.io/gorm"
 )
 
 type GeoPoint struct {
-	ID  uint    `json:"-"`
+	// gorm.Model is replaced to be explicit for swagger
+	ID        uint           `gorm:"primaryKey" json:"-"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+
 	Lat float64 `json:"lat"`
 	Lng float64 `json:"lng"`
 }
 
 type Location struct {
-    gorm.Model 
+	// gorm.Model is replaced to be explicit for swagger
+	ID        uint           `gorm:"primaryKey" json:"-"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
 	// Postal address
 	Number                  uint8       `json:"number"`
@@ -20,8 +31,8 @@ type Location struct {
 	City                    string      `json:"city"`
 
     // Geographical Coordinates
-    GeoPointID              uint        `json:"-"`
-	GeoPoint                GeoPoint    `json:"geo_point"` 
+    GeoPointID              *uint        `json:"-"`
+	GeoPoint                *GeoPoint    `json:"geo_point"` 
 }
 
 type WorkingHour struct {
@@ -33,28 +44,45 @@ type WorkingHour struct {
 }
 
 type Service struct {
-	gorm.Model
+	// gorm.Model is replaced to be explicit for swagger
+	ID        uint           `gorm:"primaryKey" json:"-"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	PrintCenterID           string      `json:"-"`
+	PrintCenterID           uint      `json:"-"`
 	Name                    string      `json:"name"`                   // e.g., "printing"
 	PaperSize               string      `json:"paper_size"`             // e.g., "A4"
 	Price                   float64     `json:"price"`
 	Description             string      `json:"description"`
 }
 
+type PrintCenterStatus string
+
+const (
+	StatusPending   PrintCenterStatus = "pending"
+	StatusApproved  PrintCenterStatus = "approved"
+	StatusRejected  PrintCenterStatus = "rejected"
+	StatusSuspended PrintCenterStatus = "suspended"
+)
+
 type PrintCenter struct {
-	gorm.Model
+	// gorm.Model is replaced to be explicit for swagger
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	CreatedAt time.Time      `json:"-"`
+	UpdatedAt time.Time      `json:"-"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 
-	Name                    string      `json:"name"`
-	Email                   string      `json:"email"`
-	PhoneNumber             string      `json:"phone_number"`
+	Name                    string      		`json:"name"`
+	Email                   string      		`json:"email" gorm:"uniqueIndex"`
+	PhoneNumber             string      		`json:"phone_number"`
 
-    Location                Location    `json:"location" gorm:"embedded"`
-    LocationID              int         `json:"location_id"`            // Internal FK
+    Location                Location    		`json:"location"`
+    LocationID              uint         		`json:"location_id"`            // Internal FK
 
-	WorkingHours            []WorkingHour `json:"working_hours" gorm:"foreignKey:PrintCenterID"`
-	Services                []Service     `json:"services" gorm:"foreignKey:PrintCenterID"`
+	WorkingHours            []WorkingHour 		`json:"working_hours" gorm:"foreignKey:PrintCenterID"`
+	Services                []Service     		`json:"services" gorm:"foreignKey:PrintCenterID"`
 
-	Approved     bool          `json:"approved"`
-	OwnerUID     string        `json:"owner_uid"`                       // Firebase UID of the manager
+	Status     				PrintCenterStatus   `json:"status" gorm:"type:varchar(32);default:'pending'"`
+	OwnerUID     			string        		`json:"owner_uid" gorm:"index"`                       // Firebase UID of the manager
 }
