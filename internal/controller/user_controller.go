@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/kimbasn/printly/internal/dto"
 	"github.com/kimbasn/printly/internal/entity"
 	"github.com/kimbasn/printly/internal/service"
-	"github.com/kimbasn/printly/internal/dto"
 	"github.com/kimbasn/printly/internal/validators"
 
 	"github.com/go-playground/validator/v10"
@@ -18,17 +18,20 @@ type UserController interface {
 	DeleteUserByUID(ctx *gin.Context)
 	UpdateUserProfile(ctx *gin.Context)
 	GetAllUsers(ctx *gin.Context)
+	GetMyProfile(ctx *gin.Context)
+	UpdateMyProfile(ctx *gin.Context)
+	DeleteMyProfile(ctx *gin.Context)
 }
 
 type userController struct {
-	service service.UserService
+	service  service.UserService
 	validate *validator.Validate
 }
 
 func NewUserController(service service.UserService, validate *validator.Validate) UserController {
 	validate.RegisterValidation("is-valid-role", validators.ValidateRole)
 	return &userController{
-		service: service,
+		service:  service,
 		validate: validate,
 	}
 }
@@ -63,7 +66,7 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 		PhoneNumber: req.PhoneNumber,
 		Role:        entity.Role(req.Role),
 	}
-	
+
 	created, err := c.service.Register(user)
 	if err != nil {
 		HandleServiceError(ctx, err, "failed to register user")
@@ -77,6 +80,7 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 // @Description  Retrieves a single user by their unique identifier.
 // @Tags         Users
 // @Produce      json
+// @Security     BearerAuth
 // @Param        uid   path      string       true  "User UID"
 // @Success      200   {object}  entity.User
 // @Failure      404   {object}  dto.ErrorResponse "User not found"
@@ -98,6 +102,7 @@ func (c *userController) GetUserByUID(ctx *gin.Context) {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        uid   path      string       true  "User UID"
 // @Param        user  body      dto.UpdateUserRequest  true  "User data to update"
 // @Success      200   {object}  dto.SuccessResponse "Profile updated"
@@ -116,17 +121,20 @@ func (c *userController) UpdateUserProfile(ctx *gin.Context) {
 		return
 	}
 
-	user := &entity.User{
-		UID:         ctx.Param("uid"),
-		Email:       req.Email,
-		PhoneNumber: req.PhoneNumber,
+	uid := ctx.Param("uid")
+	updates := make(map[string]interface{})
+	if req.Email != "" {
+		updates["email"] = req.Email
 	}
-	
-	if err := c.service.UpdateProfile(user); err != nil {
+	if req.PhoneNumber != "" {
+		updates["phone_number"] = req.PhoneNumber
+	}
+
+	if err := c.service.UpdateProfileByUID(uid, updates); err != nil {
 		HandleServiceError(ctx, err, "failed to update profile")
 		return
 	}
-	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "profile updated"})
+	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "profile updated successfully"})
 }
 
 // GetAllUsers godoc
@@ -134,6 +142,7 @@ func (c *userController) UpdateUserProfile(ctx *gin.Context) {
 // @Description  Retrieves a list of all users.
 // @Tags         Users
 // @Produce      json
+// @Security     BearerAuth
 // @Success      200   {array}   entity.User
 // @Failure      500   {object}  dto.ErrorResponse "Failed to fetch users"
 // @Router       /users [get]
@@ -151,6 +160,7 @@ func (c *userController) GetAllUsers(ctx *gin.Context) {
 // @Description  Deletes a user by their unique identifier.
 // @Tags         Users
 // @Produce      json
+// @Security     BearerAuth
 // @Param        uid   path      string  true  "User UID"
 // @Success      200   {object}  dto.SuccessResponse "User deleted successfully"
 // @Failure      400   {object}  dto.ErrorResponse   "Missing user UID"
@@ -173,4 +183,104 @@ func (c *userController) DeleteUserByUID(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "user deleted successfully"})
 }
 
+// GetMyProfile godoc
+// @Summary      Get current user's profile
+// @Description  Retrieves the profile of the currently authenticated user.
+// @Tags         Users
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  entity.User
+// @Failure      401  {object}  dto.ErrorResponse "Unauthorized"
+// @Failure      404  {object}  dto.ErrorResponse "User not found"
+// @Failure      500  {object}  dto.ErrorResponse "Internal server error"
+// @Router       /users/me [get]
+func (c *userController) GetMyProfile(ctx *gin.Context) {
+	// The userUID is set by the AuthenticationMiddleware.
+	userUID, exists := ctx.Get("userUID")
+	if !exists {
+		// This case should ideally not be reached if the middleware is applied correctly.
+		ctx.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "user UID not found in context"})
+		return
+	}
 
+	user, err := c.service.GetByUID(userUID.(string))
+	if err != nil {
+		HandleServiceError(ctx, err, "failed to fetch user profile")
+		return
+	}
+	ctx.JSON(http.StatusOK, user)
+}
+
+// UpdateMyProfile godoc
+// @Summary      Update current user's profile
+// @Description  Allows the currently authenticated user to update their profile information.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        user  body      dto.UpdateUserRequest  true  "Profile data to update"
+// @Success      200   {object}  dto.SuccessResponse "Profile updated successfully"
+// @Failure      400   {object}  dto.ErrorResponse   "Invalid input"
+// @Failure      401   {object}  dto.ErrorResponse   "Unauthorized"
+// @Failure      404   {object}  dto.ErrorResponse   "User not found"
+// @Failure      500   {object}  dto.ErrorResponse   "Failed to update profile"
+// @Router       /users/me [patch]
+func (c *userController) UpdateMyProfile(ctx *gin.Context) {
+	// The userUID is set by the AuthenticationMiddleware.
+	userUID, exists := ctx.Get("userUID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "user UID not found in context"})
+		return
+	}
+
+	var req dto.UpdateUserRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Build a map of fields to update to avoid overwriting with zero values.
+	updates := make(map[string]any)
+	if req.PhoneNumber != "" {
+		updates["phone_number"] = req.PhoneNumber
+	}
+
+	if len(updates) == 0 {
+		ctx.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "no fields to update"})
+		return
+	}
+
+	if err := c.service.UpdateProfileByUID(userUID.(string), updates); err != nil {
+		HandleServiceError(ctx, err, "failed to update profile")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "profile updated successfully"})
+}
+
+// DeleteMyProfile godoc
+// @Summary      Delete current user's account
+// @Description  Permanently deletes the account of the currently authenticated user from the system and Firebase.
+// @Tags         Users
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  dto.SuccessResponse "Account deleted successfully"
+// @Failure      401  {object}  dto.ErrorResponse "Unauthorized"
+// @Failure      404  {object}  dto.ErrorResponse "User not found"
+// @Failure      500  {object}  dto.ErrorResponse "Failed to delete account"
+// @Router       /users/me [delete]
+func (c *userController) DeleteMyProfile(ctx *gin.Context) {
+	userUID, exists := ctx.Get("userUID")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "user UID not found in context"})
+		return
+	}
+
+	uid := userUID.(string)
+	if err := c.service.Delete(uid); err != nil {
+		HandleServiceError(ctx, err, "failed to delete account")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "account deleted successfully"})
+}

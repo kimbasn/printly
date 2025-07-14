@@ -40,6 +40,7 @@ func NewPrintCenterController(service service.PrintCenterService, validate *vali
 // @Tags         Print Centers
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        center  body      dto.CreatePrintCenterRequest  true  "Print Center to create"
 // @Success      201     {object}  entity.PrintCenter
 // @Failure      400     {object}  dto.ErrorResponse "Invalid input"
@@ -57,9 +58,12 @@ func (c *printCenterController) CreatePrintCenter(ctx *gin.Context) {
 		return
 	}
 
-	// In a real app, OwnerUID would be extracted from the authenticated user's token.
-	//ownerUID, _ := ctx.Get("uid") // Example of getting UID from an auth middleware
-	ownerUID := "test-uid"
+	ownerUID, exists := ctx.Get("userUID")
+	if !exists {
+		// This should not happen if the AuthenticationMiddleware is applied correctly.
+		ctx.JSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "user UID not found in context"})
+		return
+	}
 
 	center := &entity.PrintCenter{
 		Name:         req.Name,
@@ -68,7 +72,7 @@ func (c *printCenterController) CreatePrintCenter(ctx *gin.Context) {
 		Location:     req.Location,
 		Services:     req.Services,
 		WorkingHours: req.WorkingHours,
-		OwnerUID:     ownerUID,
+		OwnerUID:     ownerUID.(string),
 	}
 
 	created, err := c.service.Register(center)
@@ -126,6 +130,7 @@ func (c *printCenterController) GetAllPublicPrintCenters(ctx *gin.Context) {
 // @Tags         Print Centers
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id      path      string                      true  "Print Center ID"
 // @Param        center  body      dto.UpdatePrintCenterRequest  true  "Print Center data to update"
 // @Success      200     {object}  dto.SuccessResponse "Print center updated"
@@ -172,6 +177,7 @@ func (c *printCenterController) UpdatePrintCenter(ctx *gin.Context) {
 // @Description  Deletes a print center. Requires admin role.
 // @Tags         Admin
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      string  true  "Print Center ID"
 // @Success      200  {object}  dto.SuccessResponse "Print center deleted successfully"
 // @Failure      404  {object}  dto.ErrorResponse   "Print center not found"
@@ -197,6 +203,7 @@ func (c *printCenterController) DeletePrintCenter(ctx *gin.Context) {
 // @Description  Retrieves a list of all print centers awaiting approval. Requires admin role.
 // @Tags         Admin
 // @Produce      json
+// @Security     BearerAuth
 // @Success      200  {array}   entity.PrintCenter
 // @Failure      500  {object}  dto.ErrorResponse "Failed to fetch pending centers"
 // @Router       /admin/centers/pending [get]
@@ -214,6 +221,7 @@ func (c *printCenterController) GetPendingPrintCenters(ctx *gin.Context) {
 // @Description  Retrieves a list of all print centers, regardless of status. Requires admin role.
 // @Tags         Admin
 // @Produce      json
+// @Security     BearerAuth
 func (c *printCenterController) GetAllPrintCenters(ctx *gin.Context) {
 	centers, err := c.service.GetAll()
 	if err != nil {
@@ -229,6 +237,7 @@ func (c *printCenterController) GetAllPrintCenters(ctx *gin.Context) {
 // @Tags         Admin
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id      path      string                              true  "Print Center ID"
 // @Param        status  body      dto.UpdatePrintCenterStatusRequest  true  "New status"
 // @Success      200     {object}  dto.SuccessResponse "Status updated"
@@ -258,5 +267,3 @@ func (c *printCenterController) UpdatePrintCenterStatus(ctx *gin.Context) {
 	}
 	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "status updated"})
 }
-
-

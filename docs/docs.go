@@ -25,6 +25,11 @@ const docTemplate = `{
     "paths": {
         "/admin/centers/pending": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves a list of all print centers awaiting approval. Requires admin role.",
                 "produces": [
                     "application/json"
@@ -54,6 +59,11 @@ const docTemplate = `{
         },
         "/admin/centers/{id}": {
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deletes a print center. Requires admin role.",
                 "produces": [
                     "application/json"
@@ -95,6 +105,11 @@ const docTemplate = `{
         },
         "/admin/centers/{id}/status": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Approves, rejects, or suspends a print center. Requires admin role.",
                 "consumes": [
                     "application/json"
@@ -154,6 +169,11 @@ const docTemplate = `{
         },
         "/admin/orders": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves a list of all orders across the platform. Requires admin role.",
                 "produces": [
                     "application/json"
@@ -183,6 +203,11 @@ const docTemplate = `{
         },
         "/admin/orders/{id}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves a single order by its ID. Requires admin role.",
                 "produces": [
                     "application/json"
@@ -228,6 +253,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deletes an order. Requires admin role.",
                 "produces": [
                     "application/json"
@@ -302,6 +332,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Registers a new print center, which will be pending approval. Requires authentication.",
                 "consumes": [
                     "application/json"
@@ -387,6 +422,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Updates a print center's information. Requires owner or admin role.",
                 "consumes": [
                     "application/json"
@@ -446,6 +486,11 @@ const docTemplate = `{
         },
         "/centers/{id}/orders": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves all orders for a specific print center. Requires manager or admin role.",
                 "produces": [
                     "application/json"
@@ -488,6 +533,11 @@ const docTemplate = `{
                 }
             },
             "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Creates a new order with one or more documents and returns the created order. Requires authentication.",
                 "consumes": [
                     "application/json"
@@ -594,6 +644,11 @@ const docTemplate = `{
         },
         "/orders/{id}/status": {
             "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Updates the status of an order. Requires manager or admin role.",
                 "consumes": [
                     "application/json"
@@ -653,6 +708,11 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves a list of all users.",
                 "produces": [
                     "application/json"
@@ -730,8 +790,158 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/me": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Retrieves the profile of the currently authenticated user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get current user's profile",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.User"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Permanently deletes the account of the currently authenticated user from the system and Firebase.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Delete current user's account",
+                "responses": {
+                    "200": {
+                        "description": "Account deleted successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SuccessResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to delete account",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Allows the currently authenticated user to update their profile information.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update current user's profile",
+                "parameters": [
+                    {
+                        "description": "Profile data to update",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update profile",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{uid}": {
             "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Retrieves a single user by their unique identifier.",
                 "produces": [
                     "application/json"
@@ -771,6 +981,11 @@ const docTemplate = `{
                 }
             },
             "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Updates a user's profile information. Only email and phone number can be updated.",
                 "consumes": [
                     "application/json"
@@ -828,6 +1043,11 @@ const docTemplate = `{
                 }
             },
             "delete": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
                 "description": "Deletes a user by their unique identifier.",
                 "produces": [
                     "application/json"
@@ -1417,6 +1637,14 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and a JWT token.",
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
         }
     }
 }`

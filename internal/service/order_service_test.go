@@ -62,6 +62,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder_Success() {
 	printCenter := &entity.PrintCenter{ID: centerID}
 
 	s.printCenterRepo.EXPECT().FindByID(centerID).Return(printCenter, nil)
+	s.orderRepo.EXPECT().FindByCode(gomock.Any()).Return(nil, nil) // For unique code generation
 	s.orderRepo.EXPECT().Save(gomock.Any()).DoAndReturn(func(order *entity.Order) error {
 		s.Equal(userUID, order.UserUID)
 		s.Equal(centerID, order.PrintCenterID)
@@ -105,6 +106,7 @@ func (s *OrderServiceTestSuite) TestCreateOrder_SaveError() {
 	dbErr := errors.New("database save error")
 
 	s.printCenterRepo.EXPECT().FindByID(centerID).Return(printCenter, nil)
+	s.orderRepo.EXPECT().FindByCode(gomock.Any()).Return(nil, nil) // For unique code generation
 	s.orderRepo.EXPECT().Save(gomock.Any()).Return(dbErr)
 
 	// Act
@@ -113,6 +115,23 @@ func (s *OrderServiceTestSuite) TestCreateOrder_SaveError() {
 	// Assert
 	s.Error(err)
 	s.ErrorContains(err, dbErr.Error())
+}
+
+func (s *OrderServiceTestSuite) TestCreateOrder_PrintCenterFindError() {
+	// Arrange
+	userUID := "user-123"
+	var centerID uint = 1
+	req := dto.CreateOrderRequest{}
+	dbErr := errors.New("db find error")
+
+	s.printCenterRepo.EXPECT().FindByID(centerID).Return(nil, dbErr)
+
+	// Act
+	_, err := s.service.CreateOrder(userUID, centerID, req)
+
+	// Assert
+	s.Error(err)
+	s.ErrorContains(err, "failed to verify print center")
 }
 
 // Test Cases for GetOrderByID
@@ -143,6 +162,34 @@ func (s *OrderServiceTestSuite) TestGetOrderByID_NotFound() {
 	s.ErrorIs(err, ierrors.ErrOrderNotFound)
 }
 
+// Test Cases for GetOrderByCode
+func (s *OrderServiceTestSuite) TestGetOrderByCode_Success() {
+	// Arrange
+	code := "ABC123"
+	expectedOrder := &entity.Order{Code: code}
+	s.orderRepo.EXPECT().FindByCode(code).Return(expectedOrder, nil)
+
+	// Act
+	order, err := s.service.GetOrderByCode(code)
+
+	// Assert
+	s.NoError(err)
+	s.Equal(expectedOrder, order)
+}
+
+func (s *OrderServiceTestSuite) TestGetOrderByCode_NotFound() {
+	// Arrange
+	code := "ABC123"
+	s.orderRepo.EXPECT().FindByCode(code).Return(nil, nil)
+
+	// Act
+	_, err := s.service.GetOrderByCode(code)
+
+	// Assert
+	s.Error(err)
+	s.ErrorIs(err, ierrors.ErrOrderNotFound)
+}
+
 // Test Cases for UpdateOrderStatus
 func (s *OrderServiceTestSuite) TestUpdateOrderStatus_Success() {
 	// Arrange
@@ -162,6 +209,38 @@ func (s *OrderServiceTestSuite) TestUpdateOrderStatus_Success() {
 
 	// Assert
 	s.NoError(err)
+}
+
+func (s *OrderServiceTestSuite) TestUpdateOrderStatus_OrderNotFound() {
+	// Arrange
+	var orderID uint = 1
+	newStatus := entity.StatusPaid
+
+	s.orderRepo.EXPECT().FindByID(orderID).Return(nil, nil)
+
+	// Act
+	err := s.service.UpdateOrderStatus(orderID, newStatus)
+
+	// Assert
+	s.Error(err)
+	s.ErrorIs(err, ierrors.ErrOrderNotFound)
+}
+
+func (s *OrderServiceTestSuite) TestUpdateOrderStatus_UpdateError() {
+	// Arrange
+	var orderID uint = 1
+	newStatus := entity.StatusPaid
+	dbErr := errors.New("db update error")
+
+	s.orderRepo.EXPECT().FindByID(orderID).Return(&entity.Order{ID: orderID}, nil)
+	s.orderRepo.EXPECT().Update(orderID, gomock.Any()).Return(dbErr)
+
+	// Act
+	err := s.service.UpdateOrderStatus(orderID, newStatus)
+
+	// Assert
+	s.Error(err)
+	s.ErrorContains(err, dbErr.Error())
 }
 
 // Test Cases for DeleteOrder

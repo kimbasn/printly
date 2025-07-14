@@ -50,7 +50,7 @@ func AuthenticationMiddleware(app *firebase.App, db *gorm.DB) gin.HandlerFunc {
 			return
 		}
 
-		// TOken is valid, now get user from DB to check role
+		// Token is valid, now get user from DB to check role
 		user, err := userRepo.FindByUID(token.UID)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {

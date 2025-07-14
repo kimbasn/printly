@@ -411,6 +411,8 @@ paths:
           description: Failed to delete print center
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete a print center
       tags:
       - Admin
@@ -450,6 +452,8 @@ paths:
           description: Failed to update status
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update a print center's status
       tags:
       - Admin
@@ -470,6 +474,8 @@ paths:
           description: Failed to fetch pending centers
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get all pending print centers
       tags:
       - Admin
@@ -490,6 +496,8 @@ paths:
           description: Failed to fetch all orders
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get all orders (admin)
       tags:
       - Admin
@@ -521,6 +529,8 @@ paths:
           description: Failed to delete order
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete an order (admin)
       tags:
       - Admin
@@ -551,6 +561,8 @@ paths:
           description: Failed to fetch order
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get an order by ID
       tags:
       - Admin
@@ -600,6 +612,8 @@ paths:
           description: Failed to register print center
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Register a new print center
       tags:
       - Print Centers
@@ -665,6 +679,8 @@ paths:
           description: Failed to update print center
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update a print center's profile
       tags:
       - Print Centers
@@ -695,6 +711,8 @@ paths:
           description: Failed to fetch orders
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get orders for a print center
       tags:
       - Print Centers
@@ -738,6 +756,8 @@ paths:
           description: Failed to create order
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Create a new order
       tags:
       - Print Centers
@@ -777,6 +797,8 @@ paths:
           description: Failed to update status
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update an order's status
       tags:
       - Orders
@@ -823,6 +845,8 @@ paths:
           description: Failed to fetch users
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get all users
       tags:
       - Users
@@ -887,6 +911,8 @@ paths:
           description: Failed to delete user
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Delete a user
       tags:
       - Users
@@ -913,6 +939,8 @@ paths:
           description: Failed to fetch user
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Get a user by UID
       tags:
       - Users
@@ -952,7 +980,109 @@ paths:
           description: Failed to update profile
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
       summary: Update a user's profile
       tags:
       - Users
+  /users/me:
+    delete:
+      description: Permanently deletes the account of the currently authenticated
+        user from the system and Firebase.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Account deleted successfully
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Failed to delete account
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Delete current user's account
+      tags:
+      - Users
+    get:
+      description: Retrieves the profile of the currently authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.User'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Get current user's profile
+      tags:
+      - Users
+    patch:
+      consumes:
+      - application/json
+      description: Allows the currently authenticated user to update their profile
+        information.
+      parameters:
+      - description: Profile data to update
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated successfully
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "400":
+          description: Invalid input
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Failed to update profile
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update current user's profile
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and a JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

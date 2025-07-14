@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 
 	"github.com/gin-contrib/cors"
@@ -30,6 +31,10 @@ import (
 
 // @host      localhost:8080
 // @BasePath  /api/v1
+// @securityDefinitions.apikey BearerAuth
+// @in header
+// @name Authorization
+// @description Type "Bearer" followed by a space and a JWT token.
 func main() {
 	cfg := config.Load()
 	dbConn, err := db.Init(cfg)
@@ -39,6 +44,11 @@ func main() {
 
 	if err := db.AutoMigrate(dbConn); err != nil {
 		log.Fatalf("❌ Migration failed: %v", err)
+	}
+
+	firebaseApp, err := config.SetupFirebase(context.Background(), cfg.FirebaseCredentialsFile)
+	if err != nil {
+		log.Fatalf("❌ Could not initialize Firebase: %v", err)
 	}
 
 	log.Printf("🚀 Starting Printly in %s mode on port %s...\n", cfg.AppEnv, cfg.Port)
@@ -53,8 +63,6 @@ func main() {
 	// Allow CORS for frontend apps
 	server.Use(cors.Default())
 
-	server.Use(middlewares.BasicAuth())
-
 	// Swagger route
 	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
@@ -62,9 +70,9 @@ func main() {
 	// API V1 grouping
 	api := server.Group("api/v1")
 	validate := validator.New()
-	routes.RegisterUserRoutes(api, dbConn, validate)
-	routes.RegisterPrintCenterRoutes(api, dbConn, validate)
-	routes.RegisterOrderRoutes(api, dbConn, validate)
+	routes.RegisterUserRoutes(api, dbConn, validate, firebaseApp)
+	routes.RegisterPrintCenterRoutes(api, dbConn, validate, firebaseApp)
+	routes.RegisterOrderRoutes(api, dbConn, validate, firebaseApp)
 
 	// Start server
 	serverAddress := cfg.Host + ":" + cfg.Port

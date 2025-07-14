@@ -1,8 +1,8 @@
 package dto
 
 type Credentials struct {
-	Username string `form:"username"`
-	Password string `form:"password"`
+	Phone_number string `form:"phone_number"`
+	Password     string `form:"password"`
 }
 
 type JWT struct {

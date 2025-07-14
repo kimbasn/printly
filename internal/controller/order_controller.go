@@ -38,6 +38,7 @@ func NewOrderController(service service.OrderService, validate *validator.Valida
 // @Tags         Print Centers
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id     path      string                  true  "Print Center ID"
 // @Param        order  body      dto.CreateOrderRequest  true  "Order creation request"
 // @Success      201    {object}  entity.Order
@@ -85,6 +86,7 @@ func (c *orderController) CreateOrder(ctx *gin.Context) {
 // @Description  Retrieves a single order by its ID. Requires admin role.
 // @Tags         Admin
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      string       true  "Order ID"
 // @Success      200  {object}  entity.Order
 // @Failure      400  {object}  dto.ErrorResponse "Invalid ID"
@@ -130,6 +132,7 @@ func (c *orderController) GetOrderByCode(ctx *gin.Context) {
 // @Description  Retrieves all orders for a specific print center. Requires manager or admin role.
 // @Tags         Print Centers
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      string       true  "Print Center ID"
 // @Success      200  {array}   entity.Order
 // @Failure      400  {object}  dto.ErrorResponse "Invalid ID"
@@ -154,6 +157,7 @@ func (c *orderController) GetOrdersForCenter(ctx *gin.Context) {
 // @Description  Retrieves a list of all orders across the platform. Requires admin role.
 // @Tags         Admin
 // @Produce      json
+// @Security     BearerAuth
 // @Success      200  {array}   entity.Order
 // @Failure      500  {object}  dto.ErrorResponse "Failed to fetch all orders"
 // @Router       /admin/orders [get]
@@ -172,6 +176,7 @@ func (c *orderController) GetAllOrders(ctx *gin.Context) {
 // @Tags         Orders
 // @Accept       json
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id      path      string                      true  "Order ID"
 // @Param        status  body      dto.UpdateOrderStatusRequest  true  "New status"
 // @Success      200     {object}  dto.SuccessResponse "Status updated"
@@ -208,6 +213,7 @@ func (c *orderController) UpdateOrderStatus(ctx *gin.Context) {
 // @Description  Deletes an order. Requires admin role.
 // @Tags         Admin
 // @Produce      json
+// @Security     BearerAuth
 // @Param        id   path      string  true  "Order ID"
 // @Success      200  {object}  dto.SuccessResponse "Order deleted successfully"
 // @Failure      400  {object}  dto.ErrorResponse "Invalid ID"
