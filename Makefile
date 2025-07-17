@@ -2,7 +2,7 @@
 
 # Run the app
 run:
-	go run cmd/server/main.go
+	make generate-api-doc && go run cmd/server/main.go
 
 test:
 	go test ./... -v

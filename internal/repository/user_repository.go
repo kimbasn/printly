@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/kimbasn/printly/internal/entity"
+	ierrors "github.com/kimbasn/printly/internal/errors"
 
 	"gorm.io/gorm"
 )
@@ -45,8 +47,9 @@ func (r *userRepository) FindByUID(uid string) (*entity.User, error) {
 	var user entity.User
 
 	if err := r.db.First(&user, "uid = ?", uid).Error; err != nil {
-		// This will return gorm.ErrRecordNotFound if the user is not found,
-		// or another database error if one occurred.
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ierrors.ErrUserNotFound
+		}
 		return nil, err
 	}
 	return &user, nil

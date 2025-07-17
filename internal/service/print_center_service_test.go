@@ -35,6 +35,9 @@ func TestPrintCenterService(t *testing.T) {
 	suite.Run(t, new(PrintCenterServiceTestSuite))
 }
 
+// ============================================================================
+// Register Tests
+// ============================================================================
 func (s *PrintCenterServiceTestSuite) TestRegister_Success() {
 	// Arrange
 	center := &entity.PrintCenter{Name: "New Center"}
@@ -99,7 +102,7 @@ func (s *PrintCenterServiceTestSuite) TestGetAllPublic_Success() {
 	s.mockRepo.EXPECT().FindByStatus(entity.StatusApproved).Return(expectedCenters, nil)
 
 	// Act
-	result, err := s.service.GetAllPublic()
+	result, err := s.service.GetApproved()
 
 	// Assert
 	s.NoError(err)

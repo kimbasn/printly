@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"slices"
 	"strings"
 
 	firebase "firebase.google.com/go/v4"
@@ -18,7 +19,7 @@ import (
 func BasicAuth() gin.HandlerFunc {
 	return gin.BasicAuth(gin.Accounts{
 		"kimba": "pwd",
-		"sabi":	"pwd",
+		"sabi":  "pwd",
 	})
 }
 
@@ -39,7 +40,7 @@ func AuthenticationMiddleware(app *firebase.App, db *gorm.DB) gin.HandlerFunc {
 
 		parts := strings.Split(authHeader, " ")
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			ctx.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Authorization header format must be Bearer {toke}"})
+			ctx.AbortWithStatusJSON(http.StatusUnauthorized, dto.ErrorResponse{Error: "Authorization header format must be Bearer {token}"})
 			return
 		}
 
@@ -57,6 +58,7 @@ func AuthenticationMiddleware(app *firebase.App, db *gorm.DB) gin.HandlerFunc {
 				// User exists in Firebase but not in our DB
 				// THis must not happpen because user creation process is as is:
 				// Create user in firebase then create in db in transaction manner( both must succeed)
+				// this is handled by the server
 				ctx.AbortWithStatusJSON(http.StatusForbidden, dto.ErrorResponse{Error: "User not found in the system"})
 			} else {
 				log.Printf("Database error fetching user by UID %s: %v", token.UID, err)
@@ -95,11 +97,9 @@ func RoleMiddleware(allowedRoles ...entity.Role) gin.HandlerFunc {
 			return
 		}
 
-		for _, allowedRole := range allowedRoles {
-			if userRole == allowedRole {
-				ctx.Next()
-				return
-			}
+		if slices.Contains(allowedRoles, userRole) {
+			ctx.Next()
+			return
 		}
 		ctx.AbortWithStatusJSON(http.StatusForbidden, dto.ErrorResponse{Error: "You do not have permission to access this resource"})
 	}

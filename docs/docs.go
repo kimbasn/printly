@@ -303,6 +303,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/users/{uid}/role": {
+            "patch": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Sets the role for a specific user. Requires admin privileges.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update a user's role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User UID",
+                        "name": "uid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "New role for the user",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/dto.UpdateUserRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Role updated successfully",
+                        "schema": {
+                            "$ref": "#/definitions/dto.SuccessResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid input or role",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "User not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Failed to update role",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/centers": {
             "get": {
                 "description": "Retrieves a list of all approved print centers.",
@@ -1162,21 +1226,22 @@ const docTemplate = `{
         "dto.CreateUserRequest": {
             "type": "object",
             "required": [
-                "phone_number",
-                "role",
-                "uid"
+                "email",
+                "first_name",
+                "last_name",
+                "password"
             ],
             "properties": {
                 "email": {
                     "type": "string"
                 },
-                "phone_number": {
+                "first_name": {
                     "type": "string"
                 },
-                "role": {
-                    "$ref": "#/definitions/entity.Role"
+                "last_name": {
+                    "type": "string"
                 },
-                "uid": {
+                "password": {
                     "type": "string"
                 }
             }
@@ -1286,11 +1351,33 @@ const docTemplate = `{
         "dto.UpdateUserRequest": {
             "type": "object",
             "properties": {
+                "disabled": {
+                    "type": "boolean"
+                },
                 "email": {
                     "type": "string"
                 },
-                "phone_number": {
+                "first_name": {
                     "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.UpdateUserRoleRequest": {
+            "type": "object",
+            "required": [
+                "role"
+            ],
+            "properties": {
+                "role": {
+                    "description": "The new role for the user. Must be 'user', 'manager', or 'admin'.",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/entity.Role"
+                        }
+                    ]
                 }
             }
         },
@@ -1596,12 +1683,16 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "disabled": {
+                    "type": "boolean"
+                },
                 "email": {
-                    "description": "Optional for anonymous",
                     "type": "string"
                 },
-                "phone_number": {
-                    "description": "Required for Mobile Money and contact",
+                "first_name": {
+                    "type": "string"
+                },
+                "last_name": {
                     "type": "string"
                 },
                 "role": {

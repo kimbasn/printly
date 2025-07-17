@@ -21,6 +21,7 @@ type UserController interface {
 	GetMyProfile(ctx *gin.Context)
 	UpdateMyProfile(ctx *gin.Context)
 	DeleteMyProfile(ctx *gin.Context)
+	UpdateUserRole(ctx *gin.Context)
 }
 
 type userController struct {
@@ -61,18 +62,27 @@ func (c *userController) CreateUser(ctx *gin.Context) {
 	}
 
 	user := &entity.User{
-		UID:         req.UID,
-		Email:       req.Email,
-		PhoneNumber: req.PhoneNumber,
-		Role:        entity.Role(req.Role),
+		FirstName: req.FirstName,
+		LastName:  req.LastName,
+		Email:     req.Email,
+		Role:      entity.RoleUser, // Default role
+		Disabled:  false,
 	}
 
-	created, err := c.service.Register(user)
+	createdUser, err := c.service.Register(user, req.Password)
 	if err != nil {
 		HandleServiceError(ctx, err, "failed to register user")
 		return
 	}
-	ctx.JSON(http.StatusCreated, created)
+	response := dto.UserResponse{
+		UID:       createdUser.UID,
+		FirstName: createdUser.FirstName,
+		LastName:  createdUser.LastName,
+		Email:     createdUser.Email,
+		Role:      createdUser.Role,
+		Disabled:  createdUser.Disabled,
+	}
+	ctx.JSON(http.StatusCreated, response)
 }
 
 // GetUserByUID godoc
@@ -122,15 +132,21 @@ func (c *userController) UpdateUserProfile(ctx *gin.Context) {
 	}
 
 	uid := ctx.Param("uid")
-	updates := make(map[string]interface{})
+	updates := make(map[string]any)
+	if req.FirstName != "" {
+		updates["first_name"] = req.FirstName
+	}
+	if req.LastName != "" {
+		updates["last_name"] = req.LastName
+	}
 	if req.Email != "" {
 		updates["email"] = req.Email
 	}
-	if req.PhoneNumber != "" {
-		updates["phone_number"] = req.PhoneNumber
+	if req.Disabled {
+		updates["disabled"] = req.Disabled
 	}
 
-	if err := c.service.UpdateProfileByUID(uid, updates); err != nil {
+	if err := c.service.UpdateProfile(uid, updates); err != nil {
 		HandleServiceError(ctx, err, "failed to update profile")
 		return
 	}
@@ -241,8 +257,17 @@ func (c *userController) UpdateMyProfile(ctx *gin.Context) {
 
 	// Build a map of fields to update to avoid overwriting with zero values.
 	updates := make(map[string]any)
-	if req.PhoneNumber != "" {
-		updates["phone_number"] = req.PhoneNumber
+	if req.FirstName != "" {
+		updates["first_name"] = req.FirstName
+	}
+	if req.LastName != "" {
+		updates["last_name"] = req.LastName
+	}
+	if req.Email != "" {
+		updates["email"] = req.Email
+	}
+	if req.Disabled {
+		updates["disabled"] = req.Disabled
 	}
 
 	if len(updates) == 0 {
@@ -250,7 +275,7 @@ func (c *userController) UpdateMyProfile(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.service.UpdateProfileByUID(userUID.(string), updates); err != nil {
+	if err := c.service.UpdateProfile(userUID.(string), updates); err != nil {
 		HandleServiceError(ctx, err, "failed to update profile")
 		return
 	}
@@ -283,4 +308,34 @@ func (c *userController) DeleteMyProfile(ctx *gin.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "account deleted successfully"})
+}
+
+// UpdateUserRole godoc
+// @Summary      Update a user's role
+// @Description  Sets the role for a specific user. Requires admin privileges.
+// @Tags         Admin
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Param        uid   path      string                      true  "User UID"
+// @Param        role  body      dto.UpdateUserRoleRequest   true  "New role for the user"
+// @Success      200   {object}  dto.SuccessResponse "Role updated successfully"
+// @Failure      400   {object}  dto.ErrorResponse   "Invalid input or role"
+// @Failure      404   {object}  dto.ErrorResponse   "User not found"
+// @Failure      500   {object}  dto.ErrorResponse   "Failed to update role"
+// @Router       /admin/users/{uid}/role [patch]
+func (c *userController) UpdateUserRole(ctx *gin.Context) {
+	uid := ctx.Param("uid")
+
+	var req dto.UpdateUserRoleRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusBadRequest, dto.ErrorResponse{Error: "Invalid role specified"})
+		return
+	}
+
+	if err := c.service.UpdateRole(uid, entity.Role(req.Role)); err != nil {
+		HandleServiceError(ctx, err, "failed to update user role")
+		return
+	}
+	ctx.JSON(http.StatusOK, dto.SuccessResponse{Message: "role updated successfully"})
 }

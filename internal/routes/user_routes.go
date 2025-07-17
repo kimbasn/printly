@@ -24,7 +24,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, db *gorm.DB, validate *validator.Va
 	}
 	
 	userService := service.NewUserService(userRepo, fbAuthClient)
-	
+
 	userController := controller.NewUserController(userService, validate)
 
 	// Authenticated routes for users to manage their own profile.
@@ -46,6 +46,7 @@ func RegisterUserRoutes(rg *gin.RouterGroup, db *gorm.DB, validate *validator.Va
 		adminUsers.GET("/", userController.GetAllUsers)
 		adminUsers.GET("/:uid", userController.GetUserByUID)
 		adminUsers.PUT("/:uid", userController.UpdateUserProfile)
+		adminUsers.PATCH("/:uid/role", userController.UpdateUserRole)
 		adminUsers.DELETE("/:uid", userController.DeleteUserByUID)
 	}
 }

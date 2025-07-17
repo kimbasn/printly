@@ -15,7 +15,7 @@ import (
 type PrintCenterService interface {
 	Register(center *entity.PrintCenter) (*entity.PrintCenter, error)
 	GetByID(id uint) (*entity.PrintCenter, error)
-	GetAllPublic() ([]entity.PrintCenter, error)
+	GetApproved() ([]entity.PrintCenter, error)
 	GetPending() ([]entity.PrintCenter, error)
 	GetAll() ([]entity.PrintCenter, error)
 	Update(id uint, updates map[string]interface{}) error
@@ -36,31 +36,34 @@ func NewPrintCenterService(repo repository.PrintCenterRepository) PrintCenterSer
 func (s *printCenterService) Register(center *entity.PrintCenter) (*entity.PrintCenter, error) {
 	// later need to check uniqueness of address or geographical coordiantes before saving
 
-	now := time.Now()
-	center.CreatedAt = now
-	center.UpdatedAt = now
-	center.Status = entity.StatusPending // Set default status
+	newCenter := *center
 
-	if err := s.repo.Save(center); err != nil {
+	now := time.Now()
+	newCenter.CreatedAt = now
+	newCenter.UpdatedAt = now
+	newCenter.Status = entity.StatusPending // Set default status
+
+	if err := s.repo.Save(&newCenter); err != nil {
 		return nil, fmt.Errorf("failed to save new print center: %w", err)
 	}
-	return center, nil
+	return &newCenter, nil
 }
 
 // GetByID retrieves a print center by its ID.
 func (s *printCenterService) GetByID(id uint) (*entity.PrintCenter, error) {
 	center, err := s.repo.FindByID(id)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ierrors.ErrPrintCenterNotFound
+		}
 		return nil, fmt.Errorf("getting print center by id %d: %w", id, err)
 	}
-	if center == nil {
-		return nil, ierrors.ErrPrintCenterNotFound
-	}
+
 	return center, nil
 }
 
 // GetAllPublic retrieves all approved print centers.
-func (s *printCenterService) GetAllPublic() ([]entity.PrintCenter, error) {
+func (s *printCenterService) GetApproved() ([]entity.PrintCenter, error) {
 	centers, err := s.repo.FindByStatus(entity.StatusApproved)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch approved print centers: %w", err)
@@ -92,11 +95,16 @@ func (s *printCenterService) Update(id uint, updates map[string]any) error {
 		return err // Will be ErrPrintCenterNotFound or a db error
 	}
 
-	if len(updates) > 0 {
-		updates["updated_at"] = time.Now()
-		if err := s.repo.Update(id, updates); err != nil {
-			return fmt.Errorf("updating print center id %d: %w", id, err)
+	if len(updates) == 0 {
+		return nil
+	}
+
+	updates["updated_at"] = time.Now()
+	if err := s.repo.Update(id, updates); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return ierrors.ErrPrintCenterNotFound
 		}
+		return fmt.Errorf("updating print center id %d: %w", id, err)
 	}
 
 	return nil
@@ -127,4 +135,3 @@ func (s *printCenterService) Delete(id uint) error {
 	}
 	return nil
 }
-

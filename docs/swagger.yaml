@@ -47,16 +47,17 @@ definitions:
     properties:
       email:
         type: string
-      phone_number:
+      first_name:
         type: string
-      role:
-        $ref: '#/definitions/entity.Role'
-      uid:
+      last_name:
+        type: string
+      password:
         type: string
     required:
-    - phone_number
-    - role
-    - uid
+    - email
+    - first_name
+    - last_name
+    - password
     type: object
   dto.DocumentRequest:
     properties:
@@ -128,10 +129,23 @@ definitions:
     type: object
   dto.UpdateUserRequest:
     properties:
+      disabled:
+        type: boolean
       email:
         type: string
-      phone_number:
+      first_name:
         type: string
+      last_name:
+        type: string
+    type: object
+  dto.UpdateUserRoleRequest:
+    properties:
+      role:
+        allOf:
+        - $ref: '#/definitions/entity.Role'
+        description: The new role for the user. Must be 'user', 'manager', or 'admin'.
+    required:
+    - role
     type: object
   entity.ColorMode:
     enum:
@@ -346,11 +360,13 @@ definitions:
         type: integer
       created_at:
         type: string
+      disabled:
+        type: boolean
       email:
-        description: Optional for anonymous
         type: string
-      phone_number:
-        description: Required for Mobile Money and contact
+      first_name:
+        type: string
+      last_name:
         type: string
       role:
         allOf:
@@ -564,6 +580,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Get an order by ID
+      tags:
+      - Admin
+  /admin/users/{uid}/role:
+    patch:
+      consumes:
+      - application/json
+      description: Sets the role for a specific user. Requires admin privileges.
+      parameters:
+      - description: User UID
+        in: path
+        name: uid
+        required: true
+        type: string
+      - description: New role for the user
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UpdateUserRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role updated successfully
+          schema:
+            $ref: '#/definitions/dto.SuccessResponse'
+        "400":
+          description: Invalid input or role
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "404":
+          description: User not found
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+        "500":
+          description: Failed to update role
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
+      security:
+      - BearerAuth: []
+      summary: Update a user's role
       tags:
       - Admin
   /centers:

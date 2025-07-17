@@ -7,9 +7,11 @@ import (
 	"log"
 	"time"
 
+	"firebase.google.com/go/v4/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	
+
+	"github.com/kimbasn/printly/internal/adapter"
 	"github.com/kimbasn/printly/internal/entity"
 	ierrors "github.com/kimbasn/printly/internal/errors"
 
@@ -17,42 +19,43 @@ import (
 	"gorm.io/gorm"
 )
 
-//go:generate mockgen -destination=../mocks/mock_firebase_auth_client.go -package=mocks github.com/kimbasn/printly/internal/service FirebaseAuthClient
-
-// FirebaseAuthClient defines an interface for Firebase Auth operations, allowing for mocking.
-type FirebaseAuthClient interface {
-	DeleteUser(ctx context.Context, uid string) error
-}
-
 type UserService interface {
-	Register(user *entity.User) (*entity.User, error)
+	Register(user *entity.User, password string) (*entity.User, error)
 	GetByUID(uid string) (*entity.User, error)
 	Delete(uid string) error
-	UpdateProfile(user *entity.User) error
 	GetAll() ([]entity.User, error)
-	UpdateProfileByUID(uid string, updates map[string]any) error
+	UpdateProfile(uid string, updates map[string]any) error
+	UpdateRole(uid string, role entity.Role) error
 }
 
 type userService struct {
 	repo   repository.UserRepository
-	fbAuth FirebaseAuthClient
+	fbAuth adapter.FirebaseAuthClient
 }
 
-func NewUserService(repo repository.UserRepository, fbAuth FirebaseAuthClient) UserService {
+func NewUserService(repo repository.UserRepository, fbAuth adapter.FirebaseAuthClient) UserService {
 	return &userService{
 		repo:   repo,
 		fbAuth: fbAuth,
 	}
 }
 
-func (s *userService) Register(user *entity.User) (*entity.User, error) {
-	_, err := s.repo.FindByUID(user.UID)
-	if err == nil {
-		return nil, ierrors.ErrUserAlreadyExists
+func (s *userService) Register(user *entity.User, password string) (*entity.User, error) {
+	// 1. Create user in Firebase
+	params := (&auth.UserToCreate{}).
+		DisplayName(user.FirstName + " " + user.LastName).
+		Email(user.Email).
+		Password(password).
+		Disabled(false)
+
+	fbUser, err := s.fbAuth.CreateUser(context.Background(), params)
+	if err != nil {
+		return nil, err
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, fmt.Errorf("failed to check for existing user: %w", err)
-	}
+
+	// 2. User created in firebase, now save to local DB.
+	// Set the UID from Firebase response
+	user.UID = fbUser.UID
 
 	// Set timestamps for new user
 	now := time.Now()
@@ -60,6 +63,10 @@ func (s *userService) Register(user *entity.User) (*entity.User, error) {
 	user.UpdatedAt = now
 
 	if err := s.repo.Save(user); err != nil {
+		log.Printf("CRITICAL: Failed to save user %s to DB after Firebase creation. Attempting rollback", fbUser.UID)
+		if rollbackErr := s.fbAuth.DeleteUser(context.Background(), fbUser.UID); rollbackErr != nil {
+			log.Printf("CRITICAL: FAILED TO ROLLBACK FIREBASE USER %s. MANUAL INTERVENTION REQUIRED. Error: %v", fbUser.UID, rollbackErr)
+		}
 		return nil, fmt.Errorf("failed to save new user: %w", err)
 	}
 	return user, nil
@@ -76,38 +83,32 @@ func (s *userService) GetByUID(uid string) (*entity.User, error) {
 	return user, nil
 }
 
-func (s *userService) UpdateProfile(user *entity.User) error {
-	// First, ensure the user exists. GetByUID already handles not found errors.
-	if _, err := s.GetByUID(user.UID); err != nil {
-		return err
-	}
-
-	// Build a map of fields to update to perform a partial update.
-	// This is more efficient and prevents accidental updates to protected fields.
-	updates := make(map[string]interface{})
-	if user.Email != "" {
-		updates["email"] = user.Email
-	}
-	if user.PhoneNumber != "" {
-		updates["phone_number"] = user.PhoneNumber
-	}
-
-	if len(updates) > 0 {
-		updates["updated_at"] = time.Now()
-		if err := s.repo.Update(user.UID, updates); err != nil {
-			return fmt.Errorf("updating user UID %s: %w", user.UID, err)
-		}
-	}
-
-	return nil
-}
-
-func (s *userService) UpdateProfileByUID(uid string, updates map[string]any) error {
+func (s *userService) UpdateProfile(uid string, updates map[string]any) error {
 	// Ensure the user exists before updating.
-	if _, err := s.GetByUID(uid); err != nil {
+	if _, err := s.repo.FindByUID(uid); err != nil {
 		return err
 	}
 	return s.repo.Update(uid, updates)
+}
+
+func (s *userService) UpdateRole(uid string, role entity.Role) error {
+	// 1. Ensure the user exists
+	if _, err := s.GetByUID(uid); err != nil {
+		return err
+	}
+
+	// 2. Update the role in the local database
+	updates := map[string]any{"role": role}
+	if err := s.repo.Update(uid, updates); err != nil {
+		return fmt.Errorf("updating role for user UID %s: %w", uid, err)
+	}
+
+	// 3. Set custom claims in firebase
+	// claims := map[string]any{"role": string(role)}
+	// if err := s.fbAuth.SetCustomerClaims(context.Background(), uid, claims); err != nil {
+	// 	return fmt.Errorf("failed to set custom claims in firebase for UID %s: %w", uid, err)
+	// }
+	return nil
 }
 
 func (s *userService) Delete(uid string) error {

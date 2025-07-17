@@ -2,7 +2,6 @@ package entity
 
 import (
 	"time"
-
 )
 
 // Role defines the access level of a user
@@ -24,11 +23,13 @@ func (r Role) IsValid() bool {
 }
 
 type User struct {
-	UID         string    `gorm:"primaryKey" json:"uid"`         // Firebase UID (unique)
-	Role        Role      `json:"role"`                          // "user", "manager", "admin"
-	Email       string    `json:"email,omitempty"`               // Optional for anonymous
-	PhoneNumber string    `json:"phone_number"`                  // Required for Mobile Money and contact
-	CenterID    *uint     `json:"center_id,omitempty"`           // Nullable: only for managers
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	UID       string    `gorm:"unique" json:"uid"` // Firebase UID (unique)
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
+	Role      Role      `json:"role"` // "user", "manager", "admin"
+	Email     string    `json:"email"`
+	Disabled  bool      `json:"disabled" gorm:"default:false"`
+	CenterID  *uint     `json:"center_id,omitempty"` // Nullable: only for managers
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
