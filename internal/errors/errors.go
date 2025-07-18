@@ -52,6 +52,12 @@ const (
 
 	// DeadlineExceeded is a OnePlatform error code.
 	DeadlineExceeded ErrorCode = "DEADLINE_EXCEEDED"
+
+	// Print center not operational
+	NotOperational ErrorCode = "NOT_OPERATIONAL"
+
+	// order can not be cancelled at this stage
+	NotCancellable ErrorCode = "NOT_CANCELLABLE"
 )
 
 type AppError struct {
@@ -102,6 +108,8 @@ var (
 
 	ErrPrintCenterNotFound        = New(NotFound, "center not found")
 	ErrPrintCenterAlreadyApproved = New(FailedPrecondition, "center already approved")
+	ErrPrintCenterNotOperational  = New(NotOperational, "center not operational")
 
-	ErrOrderNotFound = New(NotFound, "order not found")
+	ErrOrderNotFound         = New(NotFound, "order not found")
+	ErrOrderCannotBeCancelled = New(NotCancellable, "order can not be cancelled")
 )
