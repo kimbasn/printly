@@ -11,8 +11,6 @@ func AutoMigrate(db *gorm.DB) error {
 		&entity.Order{},
 		&entity.PrintCenter{},
 		&entity.Document{},
-		&entity.Location{},
-		&entity.GeoPoint{},
 		&entity.Service{},
 		&entity.WorkingHour{},
 	)

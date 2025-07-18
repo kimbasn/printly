@@ -66,13 +66,14 @@ func (c *printCenterController) CreatePrintCenter(ctx *gin.Context) {
 	}
 
 	center := &entity.PrintCenter{
-		Name:         req.Name,
-		Email:        req.Email,
-		PhoneNumber:  req.PhoneNumber,
-		Location:     req.Location,
-		Services:     req.Services,
-		WorkingHours: req.WorkingHours,
-		OwnerUID:     ownerUID.(string),
+		Name:           req.Name,
+		Email:          req.Email,
+		PhoneNumber:    req.PhoneNumber,
+		Address:        req.Address,
+		GeoCoordinates: req.Geo_Coordinates,
+		Services:       req.Services,
+		WorkingHours:   req.WorkingHours,
+		OwnerUID:       ownerUID.(string),
 	}
 
 	created, err := c.service.Register(center)
@@ -116,7 +117,7 @@ func (c *printCenterController) GetPrintCenterByID(ctx *gin.Context) {
 // @Failure      500  {object}  dto.ErrorResponse "Failed to fetch print centers"
 // @Router       /centers [get]
 func (c *printCenterController) GetAllPublicPrintCenters(ctx *gin.Context) {
-	centers, err := c.service.GetAllPublic()
+	centers, err := c.service.GetApproved()
 	if err != nil {
 		HandleServiceError(ctx, err, "failed to fetch print centers")
 		return

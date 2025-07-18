@@ -18,10 +18,12 @@ definitions:
     type: object
   dto.CreatePrintCenterRequest:
     properties:
+      address:
+        $ref: '#/definitions/entity.Address'
       email:
         type: string
-      location:
-        $ref: '#/definitions/entity.Location'
+      geo_coordinates:
+        $ref: '#/definitions/entity.GeoPoint'
       name:
         minLength: 3
         type: string
@@ -37,8 +39,9 @@ definitions:
         minItems: 1
         type: array
     required:
+    - address
     - email
-    - location
+    - geo_coordinates
     - name
     - phone_number
     - working_hours
@@ -96,8 +99,10 @@ definitions:
     type: object
   dto.UpdatePrintCenterRequest:
     properties:
-      location:
-        $ref: '#/definitions/entity.Location'
+      address:
+        $ref: '#/definitions/entity.Address'
+      geo_coordinates:
+        $ref: '#/definitions/entity.GeoPoint'
       name:
         minLength: 3
         type: string
@@ -147,6 +152,26 @@ definitions:
     required:
     - role
     type: object
+  entity.Address:
+    properties:
+      city:
+        maxLength: 50
+        minLength: 2
+        type: string
+      number:
+        type: string
+      street:
+        maxLength: 100
+        minLength: 2
+        type: string
+      type:
+        type: string
+    required:
+    - city
+    - number
+    - street
+    - type
+    type: object
   entity.ColorMode:
     enum:
     - COLOR
@@ -183,24 +208,13 @@ definitions:
   entity.GeoPoint:
     properties:
       lat:
+        maximum: 90
+        minimum: -90
         type: number
       lng:
+        maximum: 180
+        minimum: -180
         type: number
-    type: object
-  entity.Location:
-    properties:
-      city:
-        type: string
-      geo_point:
-        $ref: '#/definitions/entity.GeoPoint'
-      number:
-        description: Postal address
-        type: integer
-      street:
-        type: string
-      type:
-        description: e.g., "Rue", "Avenue"
-        type: string
     type: object
   entity.Order:
     properties:
@@ -266,20 +280,23 @@ definitions:
     - A3
   entity.PrintCenter:
     properties:
+      address:
+        $ref: '#/definitions/entity.Address'
+      created_at:
+        description: Expose creation time
+        type: string
       email:
         type: string
+      geo_coordinates:
+        $ref: '#/definitions/entity.GeoPoint'
       id:
         description: gorm.Model is replaced to be explicit for swagger
         type: integer
-      location:
-        $ref: '#/definitions/entity.Location'
-      location_id:
-        description: Internal FK
-        type: integer
       name:
+        maxLength: 100
+        minLength: 2
         type: string
       owner_uid:
-        description: Firebase UID of the manager
         type: string
       phone_number:
         type: string
@@ -289,10 +306,17 @@ definitions:
         type: array
       status:
         $ref: '#/definitions/entity.PrintCenterStatus'
+      updated_at:
+        description: Expose update time
+        type: string
       working_hours:
         items:
           $ref: '#/definitions/entity.WorkingHour'
         type: array
+    required:
+    - email
+    - name
+    - phone_number
     type: object
   entity.PrintCenterStatus:
     enum:
@@ -343,15 +367,20 @@ definitions:
   entity.Service:
     properties:
       description:
+        maxLength: 500
         type: string
       name:
-        description: e.g., "printing"
+        maxLength: 100
+        minLength: 2
         type: string
       paper_size:
-        description: e.g., "A4"
         type: string
       price:
-        type: number
+        minimum: 0
+        type: integer
+    required:
+    - name
+    - paper_size
     type: object
   entity.User:
     properties:
@@ -378,17 +407,38 @@ definitions:
       updated_at:
         type: string
     type: object
+  entity.Weekday:
+    enum:
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+    - Saturday
+    - Sunday
+    type: string
+    x-enum-varnames:
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+    - Saturday
+    - Sunday
   entity.WorkingHour:
     properties:
       day:
-        description: e.g., "Monday"
-        type: string
+        $ref: '#/definitions/entity.Weekday'
       end:
-        description: 'Format: "08:00"'
+        description: 'Format: "18:00"'
         type: string
       start:
         description: 'Format: "08:00"'
         type: string
+    required:
+    - day
+    - end
+    - start
     type: object
 host: localhost:8080
 info:

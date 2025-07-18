@@ -38,10 +38,10 @@ func (r *printCenterRepository) FindByID(id uint) (*entity.PrintCenter, error) {
 	var printCenter entity.PrintCenter
 	result := r.db.First(&printCenter, "id = ?", id)
 
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil
-	}
 	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, gorm.ErrRecordNotFound
+		}
 		return nil, fmt.Errorf("failed to fetch print center with id %d: %w", id, result.Error)
 	}
 	return &printCenter, nil

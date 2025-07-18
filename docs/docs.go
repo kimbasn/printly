@@ -1188,18 +1188,22 @@ const docTemplate = `{
         "dto.CreatePrintCenterRequest": {
             "type": "object",
             "required": [
+                "address",
                 "email",
-                "location",
+                "geo_coordinates",
                 "name",
                 "phone_number",
                 "working_hours"
             ],
             "properties": {
+                "address": {
+                    "$ref": "#/definitions/entity.Address"
+                },
                 "email": {
                     "type": "string"
                 },
-                "location": {
-                    "$ref": "#/definitions/entity.Location"
+                "geo_coordinates": {
+                    "$ref": "#/definitions/entity.GeoPoint"
                 },
                 "name": {
                     "type": "string",
@@ -1301,8 +1305,11 @@ const docTemplate = `{
         "dto.UpdatePrintCenterRequest": {
             "type": "object",
             "properties": {
-                "location": {
-                    "$ref": "#/definitions/entity.Location"
+                "address": {
+                    "$ref": "#/definitions/entity.Address"
+                },
+                "geo_coordinates": {
+                    "$ref": "#/definitions/entity.GeoPoint"
                 },
                 "name": {
                     "type": "string",
@@ -1381,6 +1388,33 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.Address": {
+            "type": "object",
+            "required": [
+                "city",
+                "number",
+                "street",
+                "type"
+            ],
+            "properties": {
+                "city": {
+                    "type": "string",
+                    "maxLength": 50,
+                    "minLength": 2
+                },
+                "number": {
+                    "type": "string"
+                },
+                "street": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
         "entity.ColorMode": {
             "type": "string",
             "enum": [
@@ -1433,32 +1467,14 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "lat": {
-                    "type": "number"
+                    "type": "number",
+                    "maximum": 90,
+                    "minimum": -90
                 },
                 "lng": {
-                    "type": "number"
-                }
-            }
-        },
-        "entity.Location": {
-            "type": "object",
-            "properties": {
-                "city": {
-                    "type": "string"
-                },
-                "geo_point": {
-                    "$ref": "#/definitions/entity.GeoPoint"
-                },
-                "number": {
-                    "description": "Postal address",
-                    "type": "integer"
-                },
-                "street": {
-                    "type": "string"
-                },
-                "type": {
-                    "description": "e.g., \"Rue\", \"Avenue\"",
-                    "type": "string"
+                    "type": "number",
+                    "maximum": 180,
+                    "minimum": -180
                 }
             }
         },
@@ -1545,26 +1561,35 @@ const docTemplate = `{
         },
         "entity.PrintCenter": {
             "type": "object",
+            "required": [
+                "email",
+                "name",
+                "phone_number"
+            ],
             "properties": {
+                "address": {
+                    "$ref": "#/definitions/entity.Address"
+                },
+                "created_at": {
+                    "description": "Expose creation time",
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
+                },
+                "geo_coordinates": {
+                    "$ref": "#/definitions/entity.GeoPoint"
                 },
                 "id": {
                     "description": "gorm.Model is replaced to be explicit for swagger",
                     "type": "integer"
                 },
-                "location": {
-                    "$ref": "#/definitions/entity.Location"
-                },
-                "location_id": {
-                    "description": "Internal FK",
-                    "type": "integer"
-                },
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
                 },
                 "owner_uid": {
-                    "description": "Firebase UID of the manager",
                     "type": "string"
                 },
                 "phone_number": {
@@ -1578,6 +1603,10 @@ const docTemplate = `{
                 },
                 "status": {
                     "$ref": "#/definitions/entity.PrintCenterStatus"
+                },
+                "updated_at": {
+                    "description": "Expose update time",
+                    "type": "string"
                 },
                 "working_hours": {
                     "type": "array",
@@ -1656,20 +1685,26 @@ const docTemplate = `{
         },
         "entity.Service": {
             "type": "object",
+            "required": [
+                "name",
+                "paper_size"
+            ],
             "properties": {
                 "description": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 500
                 },
                 "name": {
-                    "description": "e.g., \"printing\"",
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 100,
+                    "minLength": 2
                 },
                 "paper_size": {
-                    "description": "e.g., \"A4\"",
                     "type": "string"
                 },
                 "price": {
-                    "type": "number"
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },
@@ -1712,15 +1747,40 @@ const docTemplate = `{
                 }
             }
         },
+        "entity.Weekday": {
+            "type": "string",
+            "enum": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+            ],
+            "x-enum-varnames": [
+                "Monday",
+                "Tuesday",
+                "Wednesday",
+                "Thursday",
+                "Friday",
+                "Saturday",
+                "Sunday"
+            ]
+        },
         "entity.WorkingHour": {
             "type": "object",
+            "required": [
+                "day",
+                "end",
+                "start"
+            ],
             "properties": {
                 "day": {
-                    "description": "e.g., \"Monday\"",
-                    "type": "string"
+                    "$ref": "#/definitions/entity.Weekday"
                 },
                 "end": {
-                    "description": "Format: \"08:00\"",
+                    "description": "Format: \"18:00\"",
                     "type": "string"
                 },
                 "start": {

@@ -32,22 +32,24 @@ type UpdateUserRoleRequest struct {
 
 // CreatePrintCenterRequest defines the structure for creating a new print center.
 type CreatePrintCenterRequest struct {
-	Name         string               `json:"name" validate:"required,min=3"`
-	Email        string               `json:"email" validate:"required,email"`
-	PhoneNumber  string               `json:"phone_number" validate:"required"`
-	Location     entity.Location      `json:"location" validate:"required"`
-	Services     []entity.Service     `json:"services" validate:"dive"`
-	WorkingHours []entity.WorkingHour `json:"working_hours" validate:"required,min=1,dive"`
+	Name            string               `json:"name" validate:"required,min=3"`
+	Email           string               `json:"email" validate:"required,email"`
+	PhoneNumber     string               `json:"phone_number" validate:"required"`
+	Address         entity.Address       `json:"address" validate:"required"`
+	Geo_Coordinates entity.GeoPoint      `json:"geo_coordinates" validate:"required"`
+	Services        []entity.Service     `json:"services" validate:"dive"`
+	WorkingHours    []entity.WorkingHour `json:"working_hours" validate:"required,min=1,dive"`
 }
 
 // UpdatePrintCenterRequest defines the structure for partially updating a print center.
 // Pointers are used to distinguish between a field not being provided and a field being provided with its zero value.
 type UpdatePrintCenterRequest struct {
-	Name         *string               `json:"name,omitempty" validate:"omitempty,min=3"`
-	PhoneNumber  *string               `json:"phone_number,omitempty"`
-	Location     *entity.Location      `json:"location,omitempty" validate:"omitempty"`
-	Services     *[]entity.Service     `json:"services,omitempty" validate:"omitempty,min=1,dive"`
-	WorkingHours *[]entity.WorkingHour `json:"working_hours,omitempty" validate:"omitempty,min=1,dive"`
+	Name            *string               `json:"name,omitempty" validate:"omitempty,min=3"`
+	PhoneNumber     *string               `json:"phone_number,omitempty"`
+	Address         entity.Address        `json:"address" validate:"omitempty"`
+	Geo_Coordinates entity.GeoPoint       `json:"geo_coordinates" validate:"omitempty"`
+	Services        *[]entity.Service     `json:"services,omitempty" validate:"omitempty,min=1,dive"`
+	WorkingHours    *[]entity.WorkingHour `json:"working_hours,omitempty" validate:"omitempty,min=1,dive"`
 }
 
 // UpdatePrintCenterStatusRequest defines the structure for updating a print center's status.
