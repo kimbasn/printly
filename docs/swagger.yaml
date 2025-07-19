@@ -1,21 +1,5 @@
 basePath: /api/v1
 definitions:
-  dto.CreateOrderRequest:
-    properties:
-      documents:
-        items:
-          $ref: '#/definitions/dto.DocumentRequest'
-        minItems: 1
-        type: array
-      print_mode:
-        allOf:
-        - $ref: '#/definitions/entity.PrintMode'
-        enum:
-        - PRE_PRINT
-    required:
-    - documents
-    - print_mode
-    type: object
   dto.CreatePrintCenterRequest:
     properties:
       address:
@@ -61,22 +45,6 @@ definitions:
     - first_name
     - last_name
     - password
-    type: object
-  dto.DocumentRequest:
-    properties:
-      file_name:
-        type: string
-      mime_type:
-        type: string
-      print_options:
-        $ref: '#/definitions/entity.PrintOptions'
-      size:
-        type: integer
-    required:
-    - file_name
-    - mime_type
-    - print_options
-    - size
     type: object
   dto.ErrorResponse:
     properties:
@@ -183,6 +151,7 @@ definitions:
   entity.Document:
     properties:
       file_name:
+        maxLength: 255
         type: string
       id:
         type: integer
@@ -193,17 +162,20 @@ definitions:
       print_options:
         $ref: '#/definitions/entity.PrintOptions'
       printed_at:
-        description: When it was printed (nullable)
         type: string
       size:
+        description: StoragePath string     `gorm:"type:text" json:"-"`                 //
+          Internal storage path
+        maximum: 52428800
+        minimum: 1
         type: integer
       storage_deleted_at:
-        description: When it was deleted from GCS
         type: string
       uploaded_at:
         type: string
-      url:
-        type: string
+    required:
+    - file_name
+    - mime_type
     type: object
   entity.GeoPoint:
     properties:
@@ -222,7 +194,16 @@ definitions:
         type: string
       code:
         type: string
+      created_at:
+        type: string
+      created_by:
+        description: Audit fields
+        type: string
+      currency:
+        description: ISO currency code
+        type: string
       documents:
+        description: Relationships
         items:
           $ref: '#/definitions/entity.Document'
         type: array
@@ -232,15 +213,27 @@ definitions:
       paid_at:
         type: string
       pickup_time:
+        description: Timestamps
         type: string
       print_center_id:
         type: integer
-      print_mode:
-        $ref: '#/definitions/entity.PrintMode'
       status:
         $ref: '#/definitions/entity.OrderStatus'
+      total_cost:
+        description: Pricing
+        minimum: 0
+        type: integer
+      updated_at:
+        type: string
+      updated_by:
+        type: string
       user_uid:
         type: string
+    required:
+    - code
+    - print_center_id
+    - status
+    - user_uid
     type: object
   entity.OrderStatus:
     enum:
@@ -274,10 +267,14 @@ definitions:
     enum:
     - A4
     - A3
+    - A5
+    - A6
     type: string
     x-enum-varnames:
     - A4
     - A3
+    - A5
+    - A6
   entity.PrintCenter:
     properties:
       address:
@@ -330,29 +327,25 @@ definitions:
     - StatusApproved
     - StatusRejected
     - StatusSuspended
-  entity.PrintMode:
-    enum:
-    - PRE_PRINT
-    - PRINT_UPON_ARRIVAL
-    type: string
-    x-enum-varnames:
-    - PrePrint
-    - PrintUponArrival
   entity.PrintOptions:
     properties:
       color:
-        allOf:
-        - $ref: '#/definitions/entity.ColorMode'
-        description: '"color" | "black_white"'
+        $ref: '#/definitions/entity.ColorMode'
       copies:
+        maximum: 100
+        minimum: 1
         type: integer
+      double_sided:
+        type: boolean
       pages:
-        description: e.g., "1-3,5"
+        description: e.g., "1-3,5" - add custom validation
         type: string
       paper_size:
-        allOf:
-        - $ref: '#/definitions/entity.PaperSize'
-        description: '"A4", "A3", etc.'
+        $ref: '#/definitions/entity.PaperSize'
+    required:
+    - color
+    - pages
+    - paper_size
     type: object
   entity.Role:
     enum:
@@ -825,21 +818,26 @@ paths:
       - Print Centers
     post:
       consumes:
-      - application/json
-      description: Creates a new order with one or more documents and returns the
-        created order. Requires authentication.
+      - multipart/form-data
+      description: Creates a new order with one or more documents uploaded as files.
+        Each document can have its own print mode and options. Requires authentication.
       parameters:
       - description: Print Center ID
         in: path
         name: id
         required: true
         type: string
-      - description: Order creation request
-        in: body
-        name: order
+      - description: Document files (multiple files allowed)
+        in: formData
+        name: files
         required: true
-        schema:
-          $ref: '#/definitions/dto.CreateOrderRequest'
+        type: file
+      - description: JSON array of document configurations (print_mode and print_options
+          for each file)
+        in: formData
+        name: document_configs
+        required: true
+        type: string
       produces:
       - application/json
       responses:
@@ -859,13 +857,17 @@ paths:
           description: Print center not found
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
+        "413":
+          description: File too large
+          schema:
+            $ref: '#/definitions/dto.ErrorResponse'
         "500":
           description: Failed to create order
           schema:
             $ref: '#/definitions/dto.ErrorResponse'
       security:
       - BearerAuth: []
-      summary: Create a new order
+      summary: Create a new order with file uploads
       tags:
       - Print Centers
   /orders/{id}/status:

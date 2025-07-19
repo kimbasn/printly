@@ -1,6 +1,10 @@
 package dto
 
-import "github.com/kimbasn/printly/internal/entity"
+import (
+	"mime/multipart"
+
+	"github.com/kimbasn/printly/internal/entity"
+)
 
 // CreateUserRequest defines the structure for creating a new user.
 // It includes validation tags to ensure data integrity and only exposes fields
@@ -67,11 +71,48 @@ type DocumentRequest struct {
 
 // CreateOrderRequest defines the structure for creating a new order with multiple documents.
 type CreateOrderRequest struct {
-	PrintMode entity.PrintMode  `json:"print_mode" validate:"required,oneof=PRE_PRINT,PRINT_UPON_ARRIVAL"`
-	Documents []DocumentRequest `json:"documents" validate:"required,min=1,dive"`
+	Documents []CreateDocumentRequest `json:"documents" validate:"required,min=1,dive"`
 }
 
 // UpdateOrderStatusRequest defines the structure for updating an order's status.
 type UpdateOrderStatusRequest struct {
 	Status entity.OrderStatus `json:"status" validate:"required"`
+}
+
+// DocumentPrintRequest represents the print configuration for a single document
+type DocumentPrintRequest struct {
+	PrintMode    string              `json:"print_mode" validate:"required"`
+	PrintOptions entity.PrintOptions `json:"print_options" validate:"required"`
+}
+
+// CreateDocumentRequest represents a document in the order creation request
+type CreateDocumentRequest struct {
+	FileName     string              `json:"file_name" validate:"required,max=255"`
+	MimeType     string              `json:"mime_type" validate:"required"`
+	Size         int64               `json:"size" validate:"required,min=1,max=52428800"` // 50MB
+	StoragePath  string              `json:"storage_path,omitempty"`                      // Internal storage path
+	URL          string              `json:"url,omitempty"`                               // For JSON uploads
+	PrintMode    entity.PrintMode    `json:"print_mode" validate:"required,oneof=PRE_PRINT,PRINT_UPON_ARRIVAL"`
+	PrintOptions entity.PrintOptions `json:"print_options" validate:"required"`
+}
+
+// MultipartOrderRequest represents the multipart form data structure
+type MultipartOrderRequest struct {
+	PrintMode    string                 `form:"print_mode" validate:"required"`
+	Files        []multipart.FileHeader `form:"files" validate:"required,min=1"`
+	PrintOptions string                 `form:"print_options" validate:"required"` // JSON string
+}
+
+// FileUploadResponse represents the response after uploading files
+type FileUploadResponse struct {
+	Files []UploadedFile `json:"files"`
+}
+
+// UploadedFile represents an uploaded file's metadata
+type UploadedFile struct {
+	FileName    string `json:"file_name"`
+	Size        int64  `json:"size"`
+	MimeType    string `json:"mime_type"`
+	StoragePath string `json:"storage_path"`
+	URL         string `json:"url"`
 }

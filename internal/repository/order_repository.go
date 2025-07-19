@@ -16,6 +16,7 @@ type OrderRepository interface {
 	FindByID(id uint) (*entity.Order, error)
 	FindByCode(code string) (*entity.Order, error)
 	FindByCenterID(centerID uint) ([]entity.Order, error)
+	FindByUserUID(userUID string) ([]entity.Order, error)
 	FindByStatus(status entity.OrderStatus) ([]entity.Order, error)
 	FindAll() ([]entity.Order, error)
 	Update(id uint, updates map[string]any) error
@@ -45,9 +46,8 @@ func (r *orderRepository) FindByID(id uint) (*entity.Order, error) {
 	result := r.db.First(&order, id)
 
 	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-		return nil, nil // Not an application error, service layer will handle it
-	}
-	if result.Error != nil {
+		return nil, gorm.ErrRecordNotFound
+	} else if result.Error != nil {
 		return nil, fmt.Errorf("failed to fetch order with id %d: %w", id, result.Error)
 	}
 	return &order, nil
@@ -74,6 +74,16 @@ func (r *orderRepository) FindByCenterID(centerID uint) ([]entity.Order, error) 
 
 	if result.Error != nil {
 		return nil, fmt.Errorf("failed to fetch orders for center id %d: %w", centerID, result.Error)
+	}
+	return orders, nil
+}
+
+func (r *orderRepository) FindByUserUID(userUID string) ([]entity.Order, error) {
+	var orders []entity.Order
+	result := r.db.Find(&orders, "user_uid = ?", userUID)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("failed to fetch orders for user uid %s: %w", userUID, result.Error)
 	}
 	return orders, nil
 }

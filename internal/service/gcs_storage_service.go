@@ -8,19 +8,45 @@ import (
 	"time"
 
 	"cloud.google.com/go/storage"
+	"github.com/kimbasn/printly/internal/config"
+	"go.uber.org/zap"
+	"google.golang.org/api/option"
 )
 
 // Example implementation for Google Cloud Storage
 type gcsStorageService struct {
 	bucketName string
 	client     *storage.Client
+	logger     *zap.Logger
 }
 
-func NewGCSStorageService(bucketName string, client *storage.Client) StorageService {
-	return &gcsStorageService{
-		bucketName: bucketName,
-		client:     client,
+// NewGCSStorageService creates a new Google Cloud Storage service
+func NewGCSStorageService(config config.GCSStorageConfig, logger *zap.Logger) (StorageService, error) {
+	ctx := context.Background()
+	var client *storage.Client
+	var err error
+
+	// Create client based on authentication method
+	switch {
+	case config.UseApplicationDefault:
+		client, err = storage.NewClient(ctx)
+	case config.CredentialsJSON != "":
+		client, err = storage.NewClient(ctx, option.WithCredentialsJSON([]byte(config.CredentialsJSON)))
+	case config.CredentialsPath != "":
+		client, err = storage.NewClient(ctx, option.WithCredentialsFile(config.CredentialsPath))
+	default:
+		client, err = storage.NewClient(ctx)
 	}
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create GCS client: %w", err)
+	}
+
+	return &gcsStorageService{
+		bucketName: config.BucketName,
+		client:     client,
+		logger:     logger,
+	}, nil
 }
 
 func (s *gcsStorageService) UploadFile(file multipart.File, filename, userUID string) (string, error) {

@@ -9,18 +9,25 @@ import (
 	"github.com/kimbasn/printly/internal/middlewares"
 	"github.com/kimbasn/printly/internal/repository"
 	"github.com/kimbasn/printly/internal/service"
+	"go.uber.org/zap"
 	"gorm.io/gorm"
 )
 
-func RegisterOrderRoutes(rg *gin.RouterGroup, db *gorm.DB, validate *validator.Validate, fbApp *firebase.App) {
+func RegisterOrderRoutes(rg *gin.RouterGroup, db *gorm.DB, validate *validator.Validate, fbApp *firebase.App, logger *zap.Logger, storageService service.StorageService) {
 	// Repositories
 	orderRepo := repository.NewOrderRepository(db)
 	printCenterRepo := repository.NewPrintCenterRepository(db)
 	userRepo := repository.NewUserRepository(db)
 
 	// Service & Controller
-	orderService := service.NewOrderService(orderRepo, printCenterRepo, userRepo)
-	orderController := controller.NewOrderController(orderService, validate)
+	orderService := service.NewOrderService(orderRepo,
+		printCenterRepo,
+		userRepo,
+		logger)
+	orderController := controller.NewOrderController(orderService,
+		storageService,
+		validate,
+		logger)
 
 	// Public route for checking order status
 	rg.GET("/orders/status/:code", orderController.GetOrderByCode)

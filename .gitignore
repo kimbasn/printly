@@ -33,3 +33,5 @@ go.work.sum
 
 
 .printly-c6d53-firebase-adminsdk-fbsvc-dfbe343bb3.json
+uploads
+printly.db

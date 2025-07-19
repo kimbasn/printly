@@ -35,6 +35,35 @@ func (m *MockOrderService) EXPECT() *MockOrderServiceMockRecorder {
 	return m.recorder
 }
 
+// CalculateOrderCost mocks base method.
+func (m *MockOrderService) CalculateOrderCost(arg0 uint) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CalculateOrderCost", arg0)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CalculateOrderCost indicates an expected call of CalculateOrderCost.
+func (mr *MockOrderServiceMockRecorder) CalculateOrderCost(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CalculateOrderCost", reflect.TypeOf((*MockOrderService)(nil).CalculateOrderCost), arg0)
+}
+
+// CancelOrder mocks base method.
+func (m *MockOrderService) CancelOrder(arg0 uint, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelOrder", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CancelOrder indicates an expected call of CancelOrder.
+func (mr *MockOrderServiceMockRecorder) CancelOrder(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelOrder", reflect.TypeOf((*MockOrderService)(nil).CancelOrder), arg0, arg1)
+}
+
 // CreateOrder mocks base method.
 func (m *MockOrderService) CreateOrder(arg0 string, arg1 uint, arg2 dto.CreateOrderRequest) (*entity.Order, error) {
 	m.ctrl.T.Helper()
@@ -124,16 +153,31 @@ func (mr *MockOrderServiceMockRecorder) GetOrdersForCenter(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersForCenter", reflect.TypeOf((*MockOrderService)(nil).GetOrdersForCenter), arg0)
 }
 
-// UpdateOrderStatus mocks base method.
-func (m *MockOrderService) UpdateOrderStatus(arg0 uint, arg1 entity.OrderStatus) error {
+// GetOrdersForUser mocks base method.
+func (m *MockOrderService) GetOrdersForUser(arg0 string) ([]entity.Order, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateOrderStatus", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetOrdersForUser", arg0)
+	ret0, _ := ret[0].([]entity.Order)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrdersForUser indicates an expected call of GetOrdersForUser.
+func (mr *MockOrderServiceMockRecorder) GetOrdersForUser(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrdersForUser", reflect.TypeOf((*MockOrderService)(nil).GetOrdersForUser), arg0)
+}
+
+// UpdateOrderStatus mocks base method.
+func (m *MockOrderService) UpdateOrderStatus(arg0 uint, arg1 entity.OrderStatus, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateOrderStatus", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateOrderStatus indicates an expected call of UpdateOrderStatus.
-func (mr *MockOrderServiceMockRecorder) UpdateOrderStatus(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockOrderServiceMockRecorder) UpdateOrderStatus(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrderStatus", reflect.TypeOf((*MockOrderService)(nil).UpdateOrderStatus), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateOrderStatus", reflect.TypeOf((*MockOrderService)(nil).UpdateOrderStatus), arg0, arg1, arg2)
 }

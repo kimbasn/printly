@@ -602,9 +602,9 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Creates a new order with one or more documents and returns the created order. Requires authentication.",
+                "description": "Creates a new order with one or more documents uploaded as files. Each document can have its own print mode and options. Requires authentication.",
                 "consumes": [
-                    "application/json"
+                    "multipart/form-data"
                 ],
                 "produces": [
                     "application/json"
@@ -612,7 +612,7 @@ const docTemplate = `{
                 "tags": [
                     "Print Centers"
                 ],
-                "summary": "Create a new order",
+                "summary": "Create a new order with file uploads",
                 "parameters": [
                     {
                         "type": "string",
@@ -622,13 +622,18 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "Order creation request",
-                        "name": "order",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/dto.CreateOrderRequest"
-                        }
+                        "type": "file",
+                        "description": "Document files (multiple files allowed)",
+                        "name": "files",
+                        "in": "formData",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "JSON array of document configurations (print_mode and print_options for each file)",
+                        "name": "document_configs",
+                        "in": "formData",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -652,6 +657,12 @@ const docTemplate = `{
                     },
                     "404": {
                         "description": "Print center not found",
+                        "schema": {
+                            "$ref": "#/definitions/dto.ErrorResponse"
+                        }
+                    },
+                    "413": {
+                        "description": "File too large",
                         "schema": {
                             "$ref": "#/definitions/dto.ErrorResponse"
                         }
@@ -1159,32 +1170,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "dto.CreateOrderRequest": {
-            "type": "object",
-            "required": [
-                "documents",
-                "print_mode"
-            ],
-            "properties": {
-                "documents": {
-                    "type": "array",
-                    "minItems": 1,
-                    "items": {
-                        "$ref": "#/definitions/dto.DocumentRequest"
-                    }
-                },
-                "print_mode": {
-                    "enum": [
-                        "PRE_PRINT"
-                    ],
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entity.PrintMode"
-                        }
-                    ]
-                }
-            }
-        },
         "dto.CreatePrintCenterRequest": {
             "type": "object",
             "required": [
@@ -1247,29 +1232,6 @@ const docTemplate = `{
                 },
                 "password": {
                     "type": "string"
-                }
-            }
-        },
-        "dto.DocumentRequest": {
-            "type": "object",
-            "required": [
-                "file_name",
-                "mime_type",
-                "print_options",
-                "size"
-            ],
-            "properties": {
-                "file_name": {
-                    "type": "string"
-                },
-                "mime_type": {
-                    "type": "string"
-                },
-                "print_options": {
-                    "$ref": "#/definitions/entity.PrintOptions"
-                },
-                "size": {
-                    "type": "integer"
                 }
             }
         },
@@ -1428,9 +1390,14 @@ const docTemplate = `{
         },
         "entity.Document": {
             "type": "object",
+            "required": [
+                "file_name",
+                "mime_type"
+            ],
             "properties": {
                 "file_name": {
-                    "type": "string"
+                    "type": "string",
+                    "maxLength": 255
                 },
                 "id": {
                     "type": "integer"
@@ -1445,20 +1412,18 @@ const docTemplate = `{
                     "$ref": "#/definitions/entity.PrintOptions"
                 },
                 "printed_at": {
-                    "description": "When it was printed (nullable)",
                     "type": "string"
                 },
                 "size": {
-                    "type": "integer"
+                    "description": "StoragePath string     ` + "`" + `gorm:\"type:text\" json:\"-\"` + "`" + `                 // Internal storage path",
+                    "type": "integer",
+                    "maximum": 52428800,
+                    "minimum": 1
                 },
                 "storage_deleted_at": {
-                    "description": "When it was deleted from GCS",
                     "type": "string"
                 },
                 "uploaded_at": {
-                    "type": "string"
-                },
-                "url": {
                     "type": "string"
                 }
             }
@@ -1480,6 +1445,12 @@ const docTemplate = `{
         },
         "entity.Order": {
             "type": "object",
+            "required": [
+                "code",
+                "print_center_id",
+                "status",
+                "user_uid"
+            ],
             "properties": {
                 "cancelled_at": {
                     "type": "string"
@@ -1487,7 +1458,19 @@ const docTemplate = `{
                 "code": {
                     "type": "string"
                 },
+                "created_at": {
+                    "type": "string"
+                },
+                "created_by": {
+                    "description": "Audit fields",
+                    "type": "string"
+                },
+                "currency": {
+                    "description": "ISO currency code",
+                    "type": "string"
+                },
                 "documents": {
+                    "description": "Relationships",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/entity.Document"
@@ -1501,16 +1484,25 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "pickup_time": {
+                    "description": "Timestamps",
                     "type": "string"
                 },
                 "print_center_id": {
                     "type": "integer"
                 },
-                "print_mode": {
-                    "$ref": "#/definitions/entity.PrintMode"
-                },
                 "status": {
                     "$ref": "#/definitions/entity.OrderStatus"
+                },
+                "total_cost": {
+                    "description": "Pricing",
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "updated_by": {
+                    "type": "string"
                 },
                 "user_uid": {
                     "type": "string"
@@ -1552,11 +1544,15 @@ const docTemplate = `{
             "type": "string",
             "enum": [
                 "A4",
-                "A3"
+                "A3",
+                "A5",
+                "A6"
             ],
             "x-enum-varnames": [
                 "A4",
-                "A3"
+                "A3",
+                "A5",
+                "A6"
             ]
         },
         "entity.PrintCenter": {
@@ -1631,42 +1627,31 @@ const docTemplate = `{
                 "StatusSuspended"
             ]
         },
-        "entity.PrintMode": {
-            "type": "string",
-            "enum": [
-                "PRE_PRINT",
-                "PRINT_UPON_ARRIVAL"
-            ],
-            "x-enum-varnames": [
-                "PrePrint",
-                "PrintUponArrival"
-            ]
-        },
         "entity.PrintOptions": {
             "type": "object",
+            "required": [
+                "color",
+                "pages",
+                "paper_size"
+            ],
             "properties": {
                 "color": {
-                    "description": "\"color\" | \"black_white\"",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entity.ColorMode"
-                        }
-                    ]
+                    "$ref": "#/definitions/entity.ColorMode"
                 },
                 "copies": {
-                    "type": "integer"
+                    "type": "integer",
+                    "maximum": 100,
+                    "minimum": 1
+                },
+                "double_sided": {
+                    "type": "boolean"
                 },
                 "pages": {
-                    "description": "e.g., \"1-3,5\"",
+                    "description": "e.g., \"1-3,5\" - add custom validation",
                     "type": "string"
                 },
                 "paper_size": {
-                    "description": "\"A4\", \"A3\", etc.",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/entity.PaperSize"
-                        }
-                    ]
+                    "$ref": "#/definitions/entity.PaperSize"
                 }
             }
         },

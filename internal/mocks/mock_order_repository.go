@@ -123,6 +123,21 @@ func (mr *MockOrderRepositoryMockRecorder) FindByStatus(arg0 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByStatus", reflect.TypeOf((*MockOrderRepository)(nil).FindByStatus), arg0)
 }
 
+// FindByUserUID mocks base method.
+func (m *MockOrderRepository) FindByUserUID(arg0 string) ([]entity.Order, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FindByUserUID", arg0)
+	ret0, _ := ret[0].([]entity.Order)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// FindByUserUID indicates an expected call of FindByUserUID.
+func (mr *MockOrderRepositoryMockRecorder) FindByUserUID(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByUserUID", reflect.TypeOf((*MockOrderRepository)(nil).FindByUserUID), arg0)
+}
+
 // Save mocks base method.
 func (m *MockOrderRepository) Save(arg0 *entity.Order) error {
 	m.ctrl.T.Helper()
